@@ -622,7 +622,7 @@ exports.ytDownload = function(data, finalCallback) {
           function(callback) {
             ffmpeg(ytdl(data.url, {
                 quality: 'highest',
-                filter: function(format) { return format.resolution === null; },
+                filter: function(format) { return !('width' in format) },
               }))
               .noVideo()
               .audioCodec('libmp3lame')
