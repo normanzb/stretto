@@ -598,32 +598,41 @@ exports.ytDownload = function(data, finalCallback) {
           },
 
           function(callback) {
-            ytdl.getInfo(data.url, function(err, info) {
-              if (!err) {
-                trackInfo = info;
-                location = path.join(out_dir, trackInfo.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.mp3');
-                fs.exists(location, function(exists) {
-                  if (!exists) {
-                    callback();
-                  } else {
-                    callback(true, {
-                      message: 'Youtube track already exists.',
-                    });
-                  }
-                });
-              } else {
+            (async function() {
+              let info
+              try {
+                info = await ytdl.getInfo(data.url)
+              } catch (err) {
                 callback(true, {
                   message: 'Error fetching info: ' + err,
                 });
+                return
               }
-            });
+
+              trackInfo = info;
+              location = path.join(out_dir, trackInfo.videoDetails.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.mp3');
+              fs.exists(location, function(exists) {
+                if (!exists) {
+                  callback();
+                } else {
+                  callback(true, {
+                    message: 'Youtube track already exists.',
+                  });
+                }
+              });
+            })()
           },
 
           function(callback) {
-            ffmpeg(ytdl(data.url, {
-                quality: 'highest',
-                filter: function(format) { return !('width' in format) },
-              }))
+            const stream = ytdl(data.url, {
+              quality: 'highest',
+              filter: format => format.mimeType.startsWith('audio/'),
+            })
+
+            // stream.pipe(fs.createWriteStream('/home/music/test.mp4'))
+            // return
+            
+            ffmpeg(stream)
               .noVideo()
               .audioCodec('libmp3lame')
               .on('start', function() {
@@ -668,19 +677,19 @@ exports.ytDownload = function(data, finalCallback) {
 
             // decide how to build the metadata based on if we have it or not
             if (!data.title) {
-              var dashpos = trackInfo.title.indexOf('-');
-              var title = trackInfo.title;
-              var artist = trackInfo.title;
+              var dashpos = trackInfo.videoDetails.title.indexOf('-');
+              var title = trackInfo.videoDetails.title;
+              var artist = trackInfo.videoDetails.title;
 
               // if there is a dash, set them in the assumed format [artist] - [title]
               if (dashpos != -1) {
-                artist = trackInfo.title.substr(0, dashpos).trim();
-                title = trackInfo.title.substr(dashpos + 1).trim();
+                artist = trackInfo.videoDetails.title.substr(0, dashpos).trim();
+                title = trackInfo.videoDetails.title.substr(dashpos + 1).trim();
               }
 
               song = {
                 title: title || 'Unknown Title',
-                album: trackInfo.title || 'Unknown Album',
+                album: trackInfo.videoDetails.title || 'Unknown Album',
                 artist: artist || 'Unknown Artist',
                 albumartist: artist || 'Unknown Artist',
                 display_artist: artist || 'Unknown Artist',
