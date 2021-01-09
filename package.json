@@ -34,7 +34,7 @@
     "soundcloud-resolver": "*",
     "swig": "*",
     "youtube-playlist-info": "^0.1.0",
-    "ytdl-core": "^3.4.2"
+    "ytdl-core": "^4.4.1"
   },
   "optionalDependencies": {
     "ffmetadata-ohnx-fork": "*",
