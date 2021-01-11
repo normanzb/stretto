@@ -10,6 +10,7 @@ var ytdl = require('ytdl-core');
 var youtubePlaylistInfo = require('youtube-playlist-info').playlistInfo;
 var ffbinaries = require('ffbinaries');
 var hasbin = require('hasbin');
+var { slugify } = require('transliteration');
 
 var util = require(path.join(__dirname, 'util.js'));
 
@@ -610,7 +611,8 @@ exports.ytDownload = function(data, finalCallback) {
               }
 
               trackInfo = info;
-              location = path.join(out_dir, trackInfo.videoDetails.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.mp3');
+              let romanized = slugify(trackInfo.videoDetails.title, { lowercase: true, separator: '_' });
+              location = path.join(out_dir, romanized + '.mp3');
               fs.exists(location, function(exists) {
                 if (!exists) {
                   callback();

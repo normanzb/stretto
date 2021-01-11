@@ -33,6 +33,7 @@
     "song-search": "^0.1.0",
     "soundcloud-resolver": "*",
     "swig": "*",
+    "transliteration": "^2.2.0",
     "youtube-playlist-info": "^0.1.0",
     "ytdl-core": "^4.4.1"
   },
