@@ -707,7 +707,10 @@ exports.ytDownload = function(data, finalCallback) {
           });
       };
 
-      let duration = trackInfo.videoDetails.lengthSeconds || trackInfo.length_seconds
+      let duration = trackInfo.length_seconds
+      if (!duration && trackInfo.videoDetails) {
+        duration = trackInfo.videoDetails.lengthSeconds * 1
+      }
 
       // decide how to build the metadata based on if we have it or not
       if (!data.title) {
