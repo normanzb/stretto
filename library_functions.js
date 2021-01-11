@@ -615,8 +615,9 @@ exports.ytDownload = function(data, finalCallback) {
                 if (!exists) {
                   callback();
                 } else {
+                  console.log('Youtube track already exists, location:', location)
                   callback(true, {
-                    message: 'Youtube track already exists.',
+                    message: 'Youtube track already exists',
                   });
                 }
               });
