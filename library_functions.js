@@ -455,7 +455,8 @@ exports.scDownload = function(url) {
           var current_track = tracks.pop();
 
           // create the location the song is written to
-          var location = path.join(out_dir, current_track.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.mp3');
+          let romanized = slugify(current_track.title, { lowercase: true, separator: '_' });
+          var location = path.join(out_dir, romanized + '.mp3');
 
           // use the time the song is actually added as the added time
           var now = Date.now();
