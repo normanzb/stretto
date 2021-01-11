@@ -584,180 +584,186 @@ exports.ytDownload = function(data, finalCallback) {
   // if it was a playlist, trigger the playlist download
   if (playlistId && playlistId.length > 2) {
     ytPlaylistDownload(playlistId[1], finalCallback);
-  } else {
-    // othwerwise, the url must be an invidual video, download that
-    if (ffmpeg) {
-      var trackInfo = null;
-      var out_dir = path.join(app.get('config').music_dir, app.get('config').youtube.dl_dir);
-      var location = null;
-      mkdirp(out_dir, function() {
-        async.waterfall([
-          function(callback) {
-            broadcast('yt_update', {
-              type: 'started',
+    return
+  }
+
+  if (!ffmpeg) {
+    var msg = 'Youtube downloading requires ffmpeg. Please install ffmpeg and try `npm install` again.';
+    console.log(msg);
+    broadcast('yt_update', {
+      type: 'error',
+      content: msg,
+    });
+    return
+  }
+
+  // othwerwise, the url must be an invidual video, download that
+  var trackInfo = null;
+  var out_dir = path.join(app.get('config').music_dir, app.get('config').youtube.dl_dir);
+  var location = null;
+  mkdirp(out_dir, function() {
+    async.waterfall([
+      function(callback) {
+        broadcast('yt_update', {
+          type: 'started',
+        });
+        callback();
+      },
+
+      function(callback) {
+        (async function() {
+          let info
+          try {
+            info = await ytdl.getInfo(data.url)
+          } catch (err) {
+            callback(true, {
+              message: 'Error fetching info: ' + err,
             });
-            callback();
-          },
+            return
+          }
 
-          function(callback) {
-            (async function() {
-              let info
-              try {
-                info = await ytdl.getInfo(data.url)
-              } catch (err) {
-                callback(true, {
-                  message: 'Error fetching info: ' + err,
-                });
-                return
-              }
-
-              trackInfo = info;
-              let romanized = slugify(trackInfo.videoDetails.title, { lowercase: true, separator: '_' });
-              location = path.join(out_dir, romanized + '.mp3');
-              fs.exists(location, function(exists) {
-                if (!exists) {
-                  callback();
-                } else {
-                  console.log('Youtube track already exists, location:', location)
-                  callback(true, {
-                    message: 'Youtube track already exists',
-                  });
-                }
-              });
-            })()
-          },
-
-          function(callback) {
-            const stream = ytdl(data.url, {
-              quality: 'highest',
-              filter: format => format.mimeType.startsWith('audio/'),
-            })
-
-            // stream.pipe(fs.createWriteStream('/home/music/test.mp4'))
-            // return
-            
-            ffmpeg(stream)
-              .noVideo()
-              .audioCodec('libmp3lame')
-              .on('start', function() {
-                console.log('Started converting Youtube movie to mp3');
-              })
-              .on('end', function() {
-                console.log('finished!');
-                callback(false);
-              })
-              .on('error', function(err) {
-                callback(err, {message: err});
-              })
-              .save(location);
-          },
-        ], function(error, errorMessage) {
-          if (!error) {
-            var now = Date.now();
-            var song;
-
-            var saveData = function(song) {
-              app.db.songs.update({location: song.location}, song,
-                {upsert: true, returnUpdatedDocs: true},
-                function(err, numAffected, newDoc, upsert) {
-                  broadcast('yt_update', {
-                    type: upsert ? 'added': 'updated',
-                    content: newDoc,
-                  });
-
-                  addToPlaylist(newDoc._id, 'Youtube');
-
-                  // update the browser the song has been added
-
-
-                  // lazy save the id3 tags to the file
-                  saveID3(song);
-
-                  // call the final callback because we are finished downloading
-                  if (finalCallback)
-                    finalCallback();
-                });
-            };
-
-            // decide how to build the metadata based on if we have it or not
-            if (!data.title) {
-              var dashpos = trackInfo.videoDetails.title.indexOf('-');
-              var title = trackInfo.videoDetails.title;
-              var artist = trackInfo.videoDetails.title;
-
-              // if there is a dash, set them in the assumed format [artist] - [title]
-              if (dashpos != -1) {
-                artist = trackInfo.videoDetails.title.substr(0, dashpos).trim();
-                title = trackInfo.videoDetails.title.substr(dashpos + 1).trim();
-              }
-
-              song = {
-                title: title || 'Unknown Title',
-                album: trackInfo.videoDetails.title || 'Unknown Album',
-                artist: artist || 'Unknown Artist',
-                albumartist: artist || 'Unknown Artist',
-                display_artist: artist || 'Unknown Artist',
-                genre: 'Unknown Genre',
-                year: new Date().getFullYear(),
-                disc: 0,
-                track: 0,
-                duration: trackInfo.length_seconds,
-                play_count: 0,
-                location: location.replace(app.get('config').music_dir, ''),
-                date_added: now,
-                date_modified: now,
-              };
-
-              saveData(song);
+          trackInfo = info;
+          let romanized = slugify(trackInfo.videoDetails.title, { lowercase: true, separator: '_' });
+          location = path.join(out_dir, romanized + '.mp3');
+          fs.exists(location, function(exists) {
+            if (!exists) {
+              callback();
             } else {
-              song = {
-                title: data.title || 'Unknown Title',
-                album: data.album || 'Unknown Album',
-                artist: data.artist || 'Unknown Artist',
-                albumartist: data.album || 'Unknown Artist',
-                display_artist: data.artist || 'Unknown Artist',
-                genre: data.genre,
-                year: new Date().getFullYear(),
-                disc: data.disc,
-                track: data.track,
-                duration: trackInfo.length_seconds,
-                play_count: 0,
-                location: location.replace(app.get('config').music_dir, ''),
-                date_added: now,
-                date_modified: now,
-              };
-
-              downloadCoverArt(data.cover_location, function(cover_location) {
-                song.cover_location = cover_location;
-                saveData(song);
+              console.log('Youtube track already exists, location:', location)
+              callback(true, {
+                message: 'Youtube track already exists',
               });
-            };
-          } else {
-            if (typeof error != Object) {
-              error = {
-                message: errorMessage.message,
-              };
             }
+          });
+        })()
+      },
 
-            console.log('Error: ' + errorMessage.message);
+      function(callback) {
+        const stream = ytdl(data.url, {
+          quality: 'highest',
+          filter: format => format.mimeType.startsWith('audio/'),
+        })
+
+        // stream.pipe(fs.createWriteStream('/home/music/test.mp4'))
+        // return
+        
+        ffmpeg(stream)
+          .noVideo()
+          .audioCodec('libmp3lame')
+          .on('start', function() {
+            console.log('Started converting Youtube movie to mp3');
+          })
+          .on('end', function() {
+            console.log('finished!');
+            callback(false);
+          })
+          .on('error', function(err) {
+            callback(err, {message: err});
+          })
+          .save(location);
+      },
+    ], function(error, errorMessage) {
+      if (error) {
+        if (typeof error != Object) {
+          error = {
+            message: errorMessage.message,
+          };
+        }
+
+        console.log('Error: ' + errorMessage.message);
+        broadcast('yt_update', {
+          type: 'error',
+          content: error.message,
+        });
+        if (finalCallback) {
+          finalCallback();
+        }
+        return
+      }
+
+      var now = Date.now();
+      var song;
+
+      var saveData = function(song) {
+        app.db.songs.update({location: song.location}, song,
+          {upsert: true, returnUpdatedDocs: true},
+          function(err, numAffected, newDoc, upsert) {
             broadcast('yt_update', {
-              type: 'error',
-              content: error.message,
+              type: upsert ? 'added': 'updated',
+              content: newDoc,
             });
+
+            addToPlaylist(newDoc._id, 'Youtube');
+
+            // update the browser the song has been added
+
+
+            // lazy save the id3 tags to the file
+            saveID3(song);
+
+            // call the final callback because we are finished downloading
             if (finalCallback)
               finalCallback();
-          }
+          });
+      };
+
+      let duration = trackInfo.lengthSeconds || trackInfo.length_seconds
+
+      // decide how to build the metadata based on if we have it or not
+      if (!data.title) {
+        var dashpos = trackInfo.videoDetails.title.indexOf('-');
+        var title = trackInfo.videoDetails.title;
+        var artist = trackInfo.videoDetails.title;
+
+        // if there is a dash, set them in the assumed format [artist] - [title]
+        if (dashpos != -1) {
+          artist = trackInfo.videoDetails.title.substr(0, dashpos).trim();
+          title = trackInfo.videoDetails.title.substr(dashpos + 1).trim();
+        }
+
+        song = {
+          title: title || 'Unknown Title',
+          album: trackInfo.videoDetails.title || 'Unknown Album',
+          artist: artist || 'Unknown Artist',
+          albumartist: artist || 'Unknown Artist',
+          display_artist: artist || 'Unknown Artist',
+          genre: 'Unknown Genre',
+          year: new Date().getFullYear(),
+          disc: 0,
+          track: 0,
+          duration,
+          play_count: 0,
+          location: location.replace(app.get('config').music_dir, ''),
+          date_added: now,
+          date_modified: now,
+        };
+
+        saveData(song);
+      } else {
+        song = {
+          title: data.title || 'Unknown Title',
+          album: data.album || 'Unknown Album',
+          artist: data.artist || 'Unknown Artist',
+          albumartist: data.album || 'Unknown Artist',
+          display_artist: data.artist || 'Unknown Artist',
+          genre: data.genre,
+          year: new Date().getFullYear(),
+          disc: data.disc,
+          track: data.track,
+          duration,
+          play_count: 0,
+          location: location.replace(app.get('config').music_dir, ''),
+          date_added: now,
+          date_modified: now,
+        };
+
+        downloadCoverArt(data.cover_location, function(cover_location) {
+          song.cover_location = cover_location;
+          saveData(song);
         });
-      });
-    } else {
-      var msg = 'Youtube downloading requires ffmpeg. Please install ffmpeg and try `npm install` again.';
-      console.log(msg);
-      broadcast('yt_update', {
-        type: 'error',
-        content: msg,
-      });
-    }
-  }
+      };
+    });
+  });
 };
 
 exports.sync_import = function(songs, url) {
