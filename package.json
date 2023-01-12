@@ -35,7 +35,7 @@
     "swig": "*",
     "transliteration": "^2.2.0",
     "youtube-playlist-info": "^0.1.0",
-    "ytdl-core": "^4.4.1"
+    "ytdl-core": "^4.11.2"
   },
   "optionalDependencies": {
     "ffmetadata-ohnx-fork": "*",
