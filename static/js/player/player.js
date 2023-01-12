@@ -38,6 +38,7 @@ function PlayState() {
   this.playlist_collection = null;
   this.playing_id = null;
   this.is_playing = false;
+  this.screenLockPromise = null;
   this.shuffle_state = false;
   this.repeat_state = 0;
   this.scrub = null;
@@ -354,6 +355,11 @@ function PlayState() {
   this.setIsPlaying = function(isPlaying) {
     this.is_playing = isPlaying;
     localStorage.setItem('last_play_state', isPlaying);
+    if (isPlaying) {
+      this.requestScreenLock()
+    } else {
+      this.releaseScreenLock()
+    }
     $(this.names.playpause).removeClass('fa-play fa-pause');
     if (this.is_playing) {
       $(this.names.playpause).addClass('fa-pause');
@@ -361,6 +367,28 @@ function PlayState() {
       $(this.names.playpause).addClass('fa-play');
     }
   };
+
+  this.requestScreenLock = function() {
+    const wakeLock = navigator.wakeLock;
+    if (!wakeLock) {
+      return;
+    }
+    if (this.screenLockPromise != null) {
+      return;
+    }
+    this.screenLockPromise = wakeLock.request('screen');
+  }
+
+  this.releaseScreenLock = function() {
+    if (this.screenLockPromise == null) {
+      return
+    }
+
+    this.screenLockPromise.then((screenLock) => {
+      screenLock.release()
+    })
+    this.screenLockPromise = null
+  }
 
   this.togglePlayState = function() {
     if (this.is_playing) {
