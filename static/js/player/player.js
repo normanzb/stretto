@@ -376,7 +376,15 @@ function PlayState() {
     if (this.screenLockPromise != null) {
       return;
     }
-    this.screenLockPromise = wakeLock.request('screen');
+    const screenLockPromise = wakeLock.request('screen');
+    screenLockPromise.then((screenLock) => {
+      screenLock.addEventListener('release', () => {
+        if (this.screenLockPromise === screenLockPromise) {
+          this.screenLockPromise = null
+        }
+      })
+    })
+    this.screenLockPromise = screenLockPromise
   }
 
   this.releaseScreenLock = function() {
