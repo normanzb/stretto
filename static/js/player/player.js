@@ -104,7 +104,7 @@ function PlayState() {
 
   this.searchItems = function(searchText) {
     this.searchText = searchText;
-    if (searchText.length < 3) {
+    if (searchText.length < 1) {
       return;
     }
 
