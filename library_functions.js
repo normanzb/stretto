@@ -639,7 +639,13 @@ exports.ytDownload = function (data, finalCallback) {
       },
 
       function (callback) {
+        const hasYoutubeCookie = !!app.get('config').youtube.cookie
         const stream = ytdl(data.url, {
+          requestOptions: hasYoutubeCookie ? {
+            headers: {
+              cookie: app.get('config').youtube.cookie
+            }
+          } : undefined,
           quality: 'highest',
           filter: format => format.mimeType.startsWith('audio/'),
         })
