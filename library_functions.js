@@ -604,7 +604,7 @@ exports.ytDownload = function (data, finalCallback) {
   var location = null;
   const cookieString = app.get('config').youtube.cookie
   const hasYoutubeCookie = !!cookieString
-  const cookies = Object.entries(cookieParse(cookieString)).map(([name, value]) => ({ name, value }))
+  const cookies = Object.entries(cookieParse.parse(cookieString)).map(([name, value]) => ({ name, value }))
   const ytdlAgent = ytdl.createAgent(hasYoutubeCookie ? cookies : undefined)
 
   mkdirp(out_dir, function () {
