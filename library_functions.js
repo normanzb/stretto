@@ -605,7 +605,7 @@ exports.ytDownload = function (data, finalCallback) {
   const cookieString = app.get('config').youtube.cookie
   const hasYoutubeCookie = !!cookieString
   const cookies = Object.entries(cookieParse.parse(cookieString)).map(([name, value]) => ({ name, value }))
-  const ytdlAgent = ytdl.createAgent(hasYoutubeCookie ? cookies : undefined)
+  const agent = ytdl.createAgent(hasYoutubeCookie ? cookies : undefined)
 
   mkdirp(out_dir, function () {
     async.waterfall([
@@ -620,7 +620,7 @@ exports.ytDownload = function (data, finalCallback) {
         (async function () {
           let info
           try {
-            info = await ytdlAgent.getInfo(data.url)
+            info = await ytdl.getInfo(data.url, { agent })
           } catch (err) {
             callback(true, {
               message: 'Error fetching info: ' + err,
@@ -646,7 +646,8 @@ exports.ytDownload = function (data, finalCallback) {
 
       function (callback) {
         const hasYoutubeCookie = !!app.get('config').youtube.cookie
-        const stream = ytdlAgent(data.url, {
+        const stream = ytdl(data.url, {
+          agent,
           quality: 'highest',
           filter: format => format.mimeType.startsWith('audio/'),
         })
