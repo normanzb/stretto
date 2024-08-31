@@ -15,6 +15,7 @@
     "async": "*",
     "basic-auth-connect": "^1.0.0",
     "body-parser": "^1.14.1",
+    "cookie-parse": "^0.4.0",
     "cookie-parser": "^1.4.0",
     "errorhandler": "^1.4.2",
     "express-http-proxy": "^0.3.0",

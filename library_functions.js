@@ -11,6 +11,7 @@ var youtubePlaylistInfo = require('youtube-playlist-info').playlistInfo;
 var ffbinaries = require('ffbinaries');
 var hasbin = require('hasbin');
 var { slugify } = require('transliteration');
+const cookieParse = require('cookie-parse')
 
 var util = require(path.join(__dirname, 'util.js'));
 
@@ -601,6 +602,11 @@ exports.ytDownload = function (data, finalCallback) {
   var trackInfo = null;
   var out_dir = path.join(app.get('config').music_dir, app.get('config').youtube.dl_dir);
   var location = null;
+  const cookieString = app.get('config').youtube.cookie
+  const hasYoutubeCookie = !!cookieString
+  const cookies = Object.entries(cookieParse(cookieString)).map(([name, value]) => ({ name, value }))
+  const ytdlAgent = ytdl.createAgent(hasYoutubeCookie ? cookies : undefined)
+
   mkdirp(out_dir, function () {
     async.waterfall([
       function (callback) {
@@ -614,14 +620,7 @@ exports.ytDownload = function (data, finalCallback) {
         (async function () {
           let info
           try {
-            const hasYoutubeCookie = !!app.get('config').youtube.cookie
-            info = await ytdl.getInfo(data.url, {
-              requestOptions: hasYoutubeCookie ? {
-                headers: {
-                  cookie: app.get('config').youtube.cookie
-                }
-              } : undefined,
-            })
+            info = await ytdlAgent.getInfo(data.url)
           } catch (err) {
             callback(true, {
               message: 'Error fetching info: ' + err,
@@ -647,12 +646,7 @@ exports.ytDownload = function (data, finalCallback) {
 
       function (callback) {
         const hasYoutubeCookie = !!app.get('config').youtube.cookie
-        const stream = ytdl(data.url, {
-          requestOptions: hasYoutubeCookie ? {
-            headers: {
-              cookie: app.get('config').youtube.cookie
-            }
-          } : undefined,
+        const stream = ytdlAgent(data.url, {
           quality: 'highest',
           filter: format => format.mimeType.startsWith('audio/'),
         })
