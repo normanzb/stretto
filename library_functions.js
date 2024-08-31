@@ -614,7 +614,14 @@ exports.ytDownload = function (data, finalCallback) {
         (async function () {
           let info
           try {
-            info = await ytdl.getInfo(data.url)
+            const hasYoutubeCookie = !!app.get('config').youtube.cookie
+            info = await ytdl.getInfo(data.url, {
+              requestOptions: hasYoutubeCookie ? {
+                headers: {
+                  cookie: app.get('config').youtube.cookie
+                }
+              } : undefined,
+            })
           } catch (err) {
             callback(true, {
               message: 'Error fetching info: ' + err,
