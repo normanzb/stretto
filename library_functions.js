@@ -6,7 +6,7 @@ var request = require('request');
 var mkdirp = require('mkdirp');
 var async = require('async');
 var SoundcloudResolver = require('soundcloud-resolver');
-var ytdl = require('ytdl-core');
+var ytdl = require('@distube/ytdl-core');
 var youtubePlaylistInfo = require('youtube-playlist-info').playlistInfo;
 var ffbinaries = require('ffbinaries');
 var hasbin = require('hasbin');
@@ -50,12 +50,12 @@ function attemptFFMpegLoad() {
       loadFFMpegLibraries();
       // download the binaries if we haven't already
       if (!fs.existsSync(binaryPath('ffmpeg')) ||
-          !fs.existsSync(binaryPath('ffprobe'))) {
+        !fs.existsSync(binaryPath('ffprobe'))) {
         console.log("FFMpeg binaries don't exist, downloading binaries...");
-        mkdirp(binaryPath(), function() {
-          downloadFFMpeg(function() {
+        mkdirp(binaryPath(), function () {
+          downloadFFMpeg(function () {
             console.log('Completed download of ffmpeg binaries to ' +
-                        binaryPath());
+              binaryPath());
           });
         });
       }
@@ -74,9 +74,9 @@ var song_extentions = ['mp3', 'm4a', 'aac', 'ogg', 'wav', 'flac', 'raw'];
 
 function findNextSong() {
   if (cnt < song_list.length && running) {
-    findSong(song_list[cnt], function(err) {
+    findSong(song_list[cnt], function (err) {
       if (err) {
-        console.log({error: err, file: song_list[cnt]});
+        console.log({ error: err, file: song_list[cnt] });
       }
 
       cnt++;
@@ -84,7 +84,7 @@ function findNextSong() {
     });
   } else {
     console.log('finished!');
-    broadcast('scan_update', {type: 'finish', count: song_list.length, completed: song_list.length, details: 'Finished'});
+    broadcast('scan_update', { type: 'finish', count: song_list.length, completed: song_list.length, details: 'Finished' });
 
     // run check for any missing durations in 5 seconds (in case there are a few still running)
     setTimeout(checkDurationMissing, 5000);
@@ -102,11 +102,11 @@ function findSong(relative_location, callback) {
 
   // convert the filename into full path
   var full_location = path.join(app.get('config').music_dir, relative_location);
-  app.db.songs.findOne({location: relative_location}, function(err, doc) {
+  app.db.songs.findOne({ location: relative_location }, function (err, doc) {
     // only scan if we haven't scanned before, or we are scanning every document again
     if (doc === null || hard_rescan) {
       // insert the new song
-      var parser = new MM(fs.createReadStream(full_location), function(err, result) {
+      var parser = new MM(fs.createReadStream(full_location), function (err, result) {
 
         console.log(result);
 
@@ -123,7 +123,7 @@ function findSong(relative_location, callback) {
 
           // if it was a metadata error and the file appears to be audio, add it
           if (err.toString().indexOf('Could not find metadata header') > 0 &&
-              util.contains(song_extentions, ext)) {
+            util.contains(song_extentions, ext)) {
             console.log('Could not find metadata. Adding the song by filename.');
 
             // create a song with the filename as the title
@@ -145,7 +145,7 @@ function findSong(relative_location, callback) {
             };
 
             if (doc === null) {
-              app.db.songs.insert(song, function(err, newDoc) {
+              app.db.songs.insert(song, function (err, newDoc) {
                 duration_fetch(relative_location, newDoc._id);
 
                 // update the browser the song has been added
@@ -165,7 +165,7 @@ function findSong(relative_location, callback) {
               }
 
               // update the document
-              app.db.songs.update({location: relative_location}, song, {}, function(err, numRplaced) {
+              app.db.songs.update({ location: relative_location }, song, {}, function (err, numRplaced) {
                 duration_fetch(relative_location, doc._id);
                 broadcast('scan_update', {
                   type: 'update',
@@ -191,8 +191,8 @@ function findSong(relative_location, callback) {
             display_artist: normaliseArtist(result.albumartist, result.artist),
             genre: result.genre,
             year: result.year,
-            disc: (result.disk || {no:0}).no || 0,
-            track: (result.track || {no:0}).no || 0,
+            disc: (result.disk || { no: 0 }).no || 0,
+            track: (result.track || { no: 0 }).no || 0,
             duration: -1,
             play_count: (doc === null) ? 0 : doc.play_count || 0,
             location: relative_location,
@@ -206,9 +206,9 @@ function findSong(relative_location, callback) {
             pic.format = pic.format.replace(/[^a-z0-9]/gi, '_').toLowerCase();
             song.cover_location = md5(pic.data) + '.' + pic.format;
             filename = app.get('configDir') + '/dbs/covers/' + song.cover_location;
-            fs.exists(filename, function(exists) {
+            fs.exists(filename, function (exists) {
               if (!exists) {
-                fs.writeFile(filename, pic.data, function(err) {
+                fs.writeFile(filename, pic.data, function (err) {
                   if (err) console.log(err);
                   console.log('Wrote file!');
                 });
@@ -218,7 +218,7 @@ function findSong(relative_location, callback) {
 
           if (doc === null) {
             // insert the song
-            app.db.songs.insert(song, function(err, newDoc) {
+            app.db.songs.insert(song, function (err, newDoc) {
               duration_fetch(relative_location, newDoc._id);
 
               // update the browser the song has been added
@@ -238,7 +238,7 @@ function findSong(relative_location, callback) {
             }
 
             // update the document
-            app.db.songs.update({location: relative_location}, song, {}, function(err, numRplaced) {
+            app.db.songs.update({ location: relative_location }, song, {}, function (err, numRplaced) {
               duration_fetch(relative_location, doc._id);
               broadcast('scan_update', {
                 type: 'update',
@@ -280,9 +280,9 @@ function normaliseArtist(albumartist, artist) {
 
 function duration_fetch(path, id) {
   // use musicmetadata with duration flag to fetch duration
-  var parser = new MM(fs.createReadStream(app.get('config').music_dir + path), { duration: true }, function(err, result) {
+  var parser = new MM(fs.createReadStream(app.get('config').music_dir + path), { duration: true }, function (err, result) {
     if (!err) {
-      app.db.songs.update({ _id: id }, { $set: { duration: result.duration} });
+      app.db.songs.update({ _id: id }, { $set: { duration: result.duration } });
       broadcast('duration_update', {
         _id: id,
         new_duration: result.duration,
@@ -292,7 +292,7 @@ function duration_fetch(path, id) {
 }
 
 function checkDurationMissing() {
-  app.db.songs.find({duration: -1}, function(err, docs) {
+  app.db.songs.find({ duration: -1 }, function (err, docs) {
     console.log(docs);
     for (var i in docs) {
       duration_fetch(docs[i].location, docs[i]._id);
@@ -302,7 +302,7 @@ function checkDurationMissing() {
 
 // clear all the songs with `location` not in the dbs
 function clearNotIn(list) {
-  app.db.songs.remove({location: { $nin: list }}, {multi: true}, function(err, numRemoved) {
+  app.db.songs.remove({ location: { $nin: list } }, { multi: true }, function (err, numRemoved) {
     console.log(numRemoved + ' tracks deleted');
   });
 }
@@ -310,7 +310,7 @@ function clearNotIn(list) {
 // removes the items that have already been scanned from the list so that the
 // scan can focus on items not scanned yet. Only used when not a hard scan
 function remove_scanned(list, callback) {
-  app.db.songs.find({}, function(err, songs) {
+  app.db.songs.find({}, function (err, songs) {
     if (!err) {
       var unscanned_list = [];
       for (var list_cnt = 0; list_cnt < list.length; list_cnt++) {
@@ -337,28 +337,28 @@ function remove_scanned(list, callback) {
 }
 
 // must be called before anything else
-exports.setApp = function(appRef) {
+exports.setApp = function (appRef) {
   app = appRef;
   attemptFFMpegLoad();
 };
 
-exports.scanItems = function(locations) {
+exports.scanItems = function (locations) {
   hard_rescan = true;
   running = true;
   song_list = song_list.concat(locations);
   findNextSong();
 };
 
-exports.scanLibrary = function(hard) {
+exports.scanLibrary = function (hard) {
   hard_rescan = hard;
-  util.walk(app.get('config').music_dir, function(err, list) {
+  util.walk(app.get('config').music_dir, function (err, list) {
     if (err) {
       console.log(err);
     }
 
     // list with paths with music_dir removed
     var stripped = [];
-    list.forEach(function(item) {
+    list.forEach(function (item) {
       if (item) {
         stripped.push(item.replace(app.get('config').music_dir, ''));
       }
@@ -366,7 +366,7 @@ exports.scanLibrary = function(hard) {
 
     clearNotIn(stripped);
     if (!hard) {
-      remove_scanned(stripped, function(unscanned) {
+      remove_scanned(stripped, function (unscanned) {
         song_list = unscanned;
         findNextSong();
       });
@@ -380,16 +380,16 @@ exports.scanLibrary = function(hard) {
 };
 
 // add a song_id to a certain playlist
-var addToPlaylist = function(song_id, playlist_name) {
-  app.db.playlists.findOne({ title: playlist_name}, function(err, doc) {
+var addToPlaylist = function (song_id, playlist_name) {
+  app.db.playlists.findOne({ title: playlist_name }, function (err, doc) {
     if (!doc) {
       // playlist doesn't exist, add it
       var plist = {
         title: playlist_name,
-        songs: [{_id: song_id}],
+        songs: [{ _id: song_id }],
         editable: true,
       };
-      app.db.playlists.insert(plist, function(err, newDoc) {
+      app.db.playlists.insert(plist, function (err, newDoc) {
         broadcast('addPlaylist', newDoc);
       });
     } else {
@@ -404,7 +404,7 @@ var addToPlaylist = function(song_id, playlist_name) {
 
       if (!found) {
         // it isn't in there, add it
-        app.db.playlists.update({_id: doc._id}, { $push:{songs: {_id: song_id}}});
+        app.db.playlists.update({ _id: doc._id }, { $push: { songs: { _id: song_id } } });
       }
     }
   });
@@ -413,12 +413,12 @@ var addToPlaylist = function(song_id, playlist_name) {
 // make it visible outside this module
 exports.addToPlaylist = addToPlaylist;
 
-exports.scDownload = function(url) {
+exports.scDownload = function (url) {
   // init the soundcloud resolver with the clientid
   var scres = new SoundcloudResolver(app.get('config').soundcloud.client_id);
 
   // resolve the tracks
-  scres.resolve(url, function(err, tracks) {
+  scres.resolve(url, function (err, tracks) {
     if (err) {
       console.log(err);
     } else {
@@ -447,10 +447,10 @@ exports.scDownload = function(url) {
 
       // make sure the dl dir is existent
       var out_dir = path.join(app.get('config').music_dir, app.get('config').soundcloud.dl_dir);
-      mkdirp(out_dir, function() {
+      mkdirp(out_dir, function () {
         // start an async loop to download the songs
         var finished = false;
-        async.until(function() { return tracks.length === 0; }, function(callback) {
+        async.until(function () { return tracks.length === 0; }, function (callback) {
           // get the current item and remove it from the stack
           var current_track = tracks.pop();
 
@@ -465,11 +465,11 @@ exports.scDownload = function(url) {
           var song = {
             title: current_track.title || 'Unknown Title',
             album: current_track.label_name || 'Unknown Album',
-            artist: current_track.user.username  || 'Unknown Artist',
-            albumartist: current_track.user.username  || 'Unknown Artist',
+            artist: current_track.user.username || 'Unknown Artist',
+            albumartist: current_track.user.username || 'Unknown Artist',
             display_artist: current_track.user.username || 'Unknown Artist',
             genre: current_track.genre,
-            year: current_track.release_year  || '2014',
+            year: current_track.release_year || '2014',
             disc: 0,
             track: 0,
             duration: current_track.duration / 1000, // in milliseconds
@@ -480,9 +480,9 @@ exports.scDownload = function(url) {
           };
 
           // prep function to run after we have finished grabbing all the files we can
-          var finish_add = function() {
+          var finish_add = function () {
             // add the song
-            app.db.songs.insert(song, function(err, newDoc) {
+            app.db.songs.insert(song, function (err, newDoc) {
               addToPlaylist(newDoc._id, 'SoundCloud');
 
               // update the browser the song has been added
@@ -502,10 +502,10 @@ exports.scDownload = function(url) {
           };
 
           // check if we need to download it
-          fs.exists(location, function(exists) {
+          fs.exists(location, function (exists) {
             if (!exists) {
               // download the song
-              request(current_track.stream_url + '?client_id=' + app.get('config').soundcloud.client_id, function(error, response, body) {
+              request(current_track.stream_url + '?client_id=' + app.get('config').soundcloud.client_id, function (error, response, body) {
                 if (error) {
                   console.log('Error downloading soundcloud track: ' + error);
                 }
@@ -529,7 +529,7 @@ exports.scDownload = function(url) {
                 if (current_track.artwork_url) {
                   // download it's cover art
                   var large_cover_url = current_track.artwork_url.replace('large.jpg', 't500x500.jpg');
-                  downloadCoverArt(large_cover_url, function(cover_location) {
+                  downloadCoverArt(large_cover_url, function (cover_location) {
                     song.cover_location = cover_location;
                     finish_add();
                   });
@@ -547,7 +547,7 @@ exports.scDownload = function(url) {
               callback();
             }
           });
-        }, function() {
+        }, function () {
           // finished
           console.log('Finished Download');
         });
@@ -559,11 +559,11 @@ exports.scDownload = function(url) {
 // download an entire youtube playlist, makes use of ytDownload below
 function ytPlaylistDownload(playlistId, callback) {
   // fetch the playlist information
-  youtubePlaylistInfo(app.get('config').youtube.api, playlistId, function(results) {
+  youtubePlaylistInfo(app.get('config').youtube.api, playlistId, function (results) {
     // setup a queue, to run this function in parallel, the concurrency
     // of this is definied as youtube.parallel_download in config.js
-    var queue = async.queue(function(result, next) {
-      module.exports.ytDownload({url: 'https://www.youtube.com/watch?v=' + result.resourceId.videoId}, next);
+    var queue = async.queue(function (result, next) {
+      module.exports.ytDownload({ url: 'https://www.youtube.com/watch?v=' + result.resourceId.videoId }, next);
     }, app.get('config').youtube.parallel_download);
 
     // when done, call the callback
@@ -577,7 +577,7 @@ function ytPlaylistDownload(playlistId, callback) {
 }
 
 var playlistRegex = /playlist\?list=(.*)(\&|$)/g;
-exports.ytDownload = function(data, finalCallback) {
+exports.ytDownload = function (data, finalCallback) {
   // check to see if this is a playlist download
   var playlistId = playlistRegex.exec(data.url);
 
@@ -601,17 +601,17 @@ exports.ytDownload = function(data, finalCallback) {
   var trackInfo = null;
   var out_dir = path.join(app.get('config').music_dir, app.get('config').youtube.dl_dir);
   var location = null;
-  mkdirp(out_dir, function() {
+  mkdirp(out_dir, function () {
     async.waterfall([
-      function(callback) {
+      function (callback) {
         broadcast('yt_update', {
           type: 'started',
         });
         callback();
       },
 
-      function(callback) {
-        (async function() {
+      function (callback) {
+        (async function () {
           let info
           try {
             info = await ytdl.getInfo(data.url)
@@ -625,7 +625,7 @@ exports.ytDownload = function(data, finalCallback) {
           trackInfo = info;
           let romanized = slugify(trackInfo.videoDetails.title, { lowercase: true, separator: '_' });
           location = path.join(out_dir, romanized + '.mp3');
-          fs.exists(location, function(exists) {
+          fs.exists(location, function (exists) {
             if (!exists) {
               callback();
             } else {
@@ -638,7 +638,7 @@ exports.ytDownload = function(data, finalCallback) {
         })()
       },
 
-      function(callback) {
+      function (callback) {
         const stream = ytdl(data.url, {
           quality: 'highest',
           filter: format => format.mimeType.startsWith('audio/'),
@@ -646,23 +646,23 @@ exports.ytDownload = function(data, finalCallback) {
 
         // stream.pipe(fs.createWriteStream('/home/music/test.mp4'))
         // return
-        
+
         ffmpeg(stream)
           .noVideo()
           .audioCodec('libmp3lame')
-          .on('start', function() {
+          .on('start', function () {
             console.log('Started converting Youtube movie to mp3');
           })
-          .on('end', function() {
+          .on('end', function () {
             console.log('finished!');
             callback(false);
           })
-          .on('error', function(err) {
-            callback(err, {message: err});
+          .on('error', function (err) {
+            callback(err, { message: err });
           })
           .save(location);
       },
-    ], function(error, errorMessage) {
+    ], function (error, errorMessage) {
       if (error) {
         if (typeof error != Object) {
           error = {
@@ -684,12 +684,12 @@ exports.ytDownload = function(data, finalCallback) {
       var now = Date.now();
       var song;
 
-      var saveData = function(song) {
-        app.db.songs.update({location: song.location}, song,
-          {upsert: true, returnUpdatedDocs: true},
-          function(err, numAffected, newDoc, upsert) {
+      var saveData = function (song) {
+        app.db.songs.update({ location: song.location }, song,
+          { upsert: true, returnUpdatedDocs: true },
+          function (err, numAffected, newDoc, upsert) {
             broadcast('yt_update', {
-              type: upsert ? 'added': 'updated',
+              type: upsert ? 'added' : 'updated',
               content: newDoc,
             });
 
@@ -760,7 +760,7 @@ exports.ytDownload = function(data, finalCallback) {
           date_modified: now,
         };
 
-        downloadCoverArt(data.cover_location, function(cover_location) {
+        downloadCoverArt(data.cover_location, function (cover_location) {
           song.cover_location = cover_location;
           saveData(song);
         });
@@ -769,7 +769,7 @@ exports.ytDownload = function(data, finalCallback) {
   });
 };
 
-exports.sync_import = function(songs, url) {
+exports.sync_import = function (songs, url) {
   // clean up the url
   if (url.indexOf('://') == -1) {
     url = 'http://' + url;
@@ -777,64 +777,64 @@ exports.sync_import = function(songs, url) {
 
   // import the songs
   var cnt = 0;
-  async.until(function() { return songs.length == cnt; }, function(callback) {
+  async.until(function () { return songs.length == cnt; }, function (callback) {
 
     var file_url = app.get('config').music_dir + songs[cnt].location;
     var folder_of_file = file_url.substring(0, file_url.lastIndexOf(path.sep));
 
     // create the folder
-    mkdirp(folder_of_file, function() {
-        var song_file_url = app.get('config').music_dir + songs[cnt].location;
+    mkdirp(folder_of_file, function () {
+      var song_file_url = app.get('config').music_dir + songs[cnt].location;
 
-        // download the file
-        request(url + '/songs/' + songs[cnt]._id).on('end', function() {
-          // once the song has been transferred successfully
-          var addSong = function(song) {
-            // if the song doesn't have the dates set, set them
-            if (song.date_added === undefined) {
-              var now = Date.now();
-              song.date_added = now;
-              song.date_modified = now;
-            }
-
-            // upsert the song
-            app.db.songs.update({_id: song._id}, song, {upsert: true}, function(err, numReplaced, newDoc) {
-              // incrememnt the count to be the next index
-              cnt++;
-
-              // update the browser with the sync status
-              broadcast('sync_update', {
-                type: 'add',
-                count: songs.length,
-                completed: cnt,
-                content: song,
-              });
-
-              // start the next iteration
-              callback();
-            });
-          };
-
-          // is there a cover?
-          if (songs[cnt].cover_location !== undefined) {
-            var cover_file_url = app.get('configDir') + '/dbs/covers/' + songs[cnt].cover_location;
-            request(url + '/cover/' + songs[cnt].cover_location).on('end', function() {
-              // once the cover has finished transferring add the song to the database
-              addSong(songs[cnt]);
-            }).pipe(fs.createWriteStream(cover_file_url));
-          } else {
-            // no cover, add the song to the database
-            addSong(songs[cnt]);
+      // download the file
+      request(url + '/songs/' + songs[cnt]._id).on('end', function () {
+        // once the song has been transferred successfully
+        var addSong = function (song) {
+          // if the song doesn't have the dates set, set them
+          if (song.date_added === undefined) {
+            var now = Date.now();
+            song.date_added = now;
+            song.date_modified = now;
           }
-        }).pipe(fs.createWriteStream(song_file_url));
-      });
-  }, function() {
+
+          // upsert the song
+          app.db.songs.update({ _id: song._id }, song, { upsert: true }, function (err, numReplaced, newDoc) {
+            // incrememnt the count to be the next index
+            cnt++;
+
+            // update the browser with the sync status
+            broadcast('sync_update', {
+              type: 'add',
+              count: songs.length,
+              completed: cnt,
+              content: song,
+            });
+
+            // start the next iteration
+            callback();
+          });
+        };
+
+        // is there a cover?
+        if (songs[cnt].cover_location !== undefined) {
+          var cover_file_url = app.get('configDir') + '/dbs/covers/' + songs[cnt].cover_location;
+          request(url + '/cover/' + songs[cnt].cover_location).on('end', function () {
+            // once the cover has finished transferring add the song to the database
+            addSong(songs[cnt]);
+          }).pipe(fs.createWriteStream(cover_file_url));
+        } else {
+          // no cover, add the song to the database
+          addSong(songs[cnt]);
+        }
+      }).pipe(fs.createWriteStream(song_file_url));
+    });
+  }, function () {
     // finished
     console.log('Finished Syncing songs to this computer');
   });
 };
 
-exports.stopScan = function(app) {
+exports.stopScan = function (app) {
   running = false;
 };
 
@@ -861,7 +861,7 @@ function saveID3(songData) {
     var destinationFile = path.join(app.get('config').music_dir, songData.location);
 
     // write the to the id3 tags on the file
-    ffmetadata.write(destinationFile, data, options, function(err) {
+    ffmetadata.write(destinationFile, data, options, function (err) {
       if (err) {
         console.log('Error writing id3 tags to file: ' + err);
       } else {
@@ -873,15 +873,15 @@ function saveID3(songData) {
 
 // fetch coverart for url
 function downloadCoverArt(url, callback) {
-  request({url: url, encoding: null}, function(error, response, body) {
+  request({ url: url, encoding: null }, function (error, response, body) {
     // where are we storing the cover art?
     var cover_location = md5(body) + '.jpg';
     var filename = app.get('configDir') + '/dbs/covers/' + cover_location;
 
     // does it exist?
-    fs.exists(filename, function(exists) {
+    fs.exists(filename, function (exists) {
       if (!exists) {
-        fs.writeFile(filename, body, function(err) {
+        fs.writeFile(filename, body, function (err) {
           callback(cover_location);
         });
       } else {

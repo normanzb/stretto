@@ -7,10 +7,10 @@
   "scripts": {
     "start": "node app.js",
     "nodemon": "nodemon app.js -e 'html css js'",
-    "postinstall": "./node_modules/grunt-cli/bin/grunt",
-    "build": "./electronres/buildpackages.sh"
+    "postinstall": "./node_modules/grunt-cli/bin/grunt"
   },
   "dependencies": {
+    "@distube/ytdl-core": "^4.14.4",
     "archiver": "^1.0.0",
     "async": "*",
     "basic-auth-connect": "^1.0.0",
@@ -42,8 +42,6 @@
     "fluent-ffmpeg": "~2.0.0-rc1"
   },
   "devDependencies": {
-    "electron-packager": "^8.2.0",
-    "electron-prebuilt": "^1.4.10",
     "grunt": "^0.4.5",
     "grunt-bower-install-simple": "^1.2.0",
     "grunt-cli": "^0.1.13",
